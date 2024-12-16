@@ -4,6 +4,25 @@ from mavros_msgs.msg import OverrideRCIn  # Import the OverrideRCIn message
 import tkinter as tk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import os
+import subprocess
+from mavros_msgs.srv import CommandBool
+
+
+script_directory = "/home/robot/mavros_ws/src/mavros/mavros/launch"
+ros_setup_script = "/opt/ros/humble/setup.bash"  # Replace <ros2_distro> with your ROS 2 distribution.
+
+try:
+    # Open a new terminal, navigate to the directory, and run the ROS 2 launch command
+    subprocess.run([
+        "gnome-terminal", "--", "bash", "-c",
+        f"cd {script_directory} && source {ros_setup_script} && ros2 launch mavros apm.launch; exec bash"
+    ])
+    print("Skrypt został uruchomiony w nowym terminalu z poprawnego katalogu!")
+except FileNotFoundError as e:
+    print(f"Nie znaleziono pliku: {e}")
+except subprocess.CalledProcessError as e:
+    print(f"Wystąpił błąd podczas uruchamiania skryptu: {e}")
 
 
 class RobotController(Node):
@@ -46,6 +65,17 @@ class RobotController(Node):
     def stop_robot(self):
         self.publish_manual_override([0] * 18)
 
+    def arm_robot(self):
+        # instruction
+        # Open new terminal to call the arming service command
+        try:
+            subprocess.run([
+                "gnome-terminal", "--", "bash", "-c",
+                "ros2 service call /mavros/cmd/arming mavros_msgs/srv/CommandBool '{value: true}'; exec bash"
+            ])
+        except Exception as e:
+            print(f"Failed to execute arming command: {e}")
+
 
 def create_gui(controller):
     def on_forward():
@@ -63,6 +93,9 @@ def create_gui(controller):
     def on_stop(event):
         controller.stop_robot()
 
+    def on_arm():
+        controller.arm_robot()
+
     # Create the main window
     window = tk.Tk()
     window.title("Robot Teleop GUI with Map")
@@ -72,12 +105,14 @@ def create_gui(controller):
     backward_button = tk.Button(window, text="↓", command=on_backward, width=10, height=2)
     left_button = tk.Button(window, text="←", command=on_left, width=10, height=2)
     right_button = tk.Button(window, text="→", command=on_right, width=10, height=2)
+    arm_button = tk.Button(window, text="Arm Robot", command=on_arm, width=10, height=2)
 
     # Layout the buttons in a grid
     forward_button.grid(row=0, column=1)
     left_button.grid(row=1, column=0)
     right_button.grid(row=1, column=2)
     backward_button.grid(row=2, column=1)
+    arm_button.grid(row=3, column=1)
 
     # Create a Figure for the map
     fig = Figure(figsize=(5, 5))
@@ -89,7 +124,7 @@ def create_gui(controller):
     # Embed the Figure in the tkinter window
     canvas = FigureCanvasTkAgg(fig, master=window)
     canvas_widget = canvas.get_tk_widget()
-    canvas_widget.grid(row=0, column=3, rowspan=3)
+    canvas_widget.grid(row=0, column=3, rowspan=4)
 
     def update_map():
         # Update the robot position on the map

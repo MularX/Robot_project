@@ -6,6 +6,18 @@ import tkinter as tk
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import numpy as np
+import subprocess
+
+script_path = "/home/user/mavros_ws/src/mavros/mavros/launch"
+
+try:
+    subprocess.run(["apm.launch", script_path], check=True)
+    print("Skrypt został uruchomiony pomyślnie!")
+except subprocess.CalledProcessError as e:
+    print(f"Wystąpił błąd podczas uruchamiania skryptu: {e}")
+
+
+
 
 class RobotController(Node):
     def __init__(self):
